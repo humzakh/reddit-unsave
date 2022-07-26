@@ -9,10 +9,10 @@ This script was written and tested in an environment with Python 3.10.4 installe
 
 ## How to Use:
 Run the script with the following commands:
-```shellscript
+```console
 pip install praw
 ```
-```zsh
+```bash
 python unsave.py
 ```
 Then follow the instructions provided by the script.
