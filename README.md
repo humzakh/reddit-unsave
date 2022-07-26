@@ -12,7 +12,8 @@ Run the script with the following commands:
 ```console
 pip install praw
 ```
-```bash
+```console
 python unsave.py
 ```
+
 Then follow the instructions provided by the script.
