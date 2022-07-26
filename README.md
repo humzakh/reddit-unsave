@@ -1,4 +1,4 @@
-# Reddit Unsave
+# reddit unsave
 A Python script to unsave (delete) all saved posts from your reddit account.
 
 There is an option to write all links to a text file before deleting.
@@ -9,10 +9,10 @@ This script was written and tested in an environment with Python 3.10.4 installe
 
 ## How to Use:
 Run the script with the following commands:
-```shell
+```console
 pip install praw
 ```
-```shell
+```console
 python unsave.py
 ```
 Then follow the instructions provided by the script.
