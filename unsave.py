@@ -4,12 +4,11 @@
 #       the number of saved posts.
 # Modified OAuth flow from: https://medium.com/@nickpgott/how-to-login-to-a-reddit-account-with-praw-when-2fa-is-enabled-4db9e82448a5
 
-import sys, random, webbrowser, socket
+import sys, random, webbrowser, socket, os
 from praw import Reddit
 from time import sleep
 from datetime import datetime
 from praw.models import Submission, Comment
-from pathlib import Path
 
 # Wait for and then return a connected socket.
 # Opens a TCP connection on port 8080, and waits for a single client.
@@ -28,28 +27,28 @@ def send_message(client, message):
     client.close()
 
 def main():
-    reddit = Reddit(client_id = 'pk5GUi9wM5Toxg4hejwq8w',
-                    client_secret = None,
-                    user_agent = 'unsaving posts',
-                    redirect_uri = 'http://localhost:8080')
+    reddit = Reddit(client_id='pk5GUi9wM5Toxg4hejwq8w',
+                    client_secret=None,
+                    user_agent='unsaving posts',
+                    redirect_uri='http://localhost:8080')
     scopes = ['identity', 'history', 'save']
     state = str(random.randint(0, 65000))
-    url = reddit.auth.url(scopes = scopes,
-                          state = state,
-                          duration = 'permanent')
+    url = reddit.auth.url(scopes=scopes,
+                          state=state,
+                          duration='permanent')
 
     print('-----',
           '\nAuthenticating with reddit')
     sleep(1)
     print('Make sure you are signed in to the correct account,',
           'then click "Allow" to continue',
-          end = '', flush = True)
+          end='', flush=True)
     sleep(0.75)
-    print('.', end = '', flush = True)
+    print('.', end='', flush=True)
     sleep(0.75)
-    print('.', end = '', flush = True)
+    print('.', end='', flush=True)
     sleep(0.75)
-    print('.', end = '', flush = True)
+    print('.', end='', flush=True)
     sleep(0.75)
     webbrowser.open(url)
     print('')
@@ -83,64 +82,70 @@ def main():
     while proceed not in ('y', 'Y', 'n', 'N'):
         if proceed != '-_-':
             print('----- INVALID INPUT -----')
-        print('WARNING: This script will delete all of your saved posts! Proceed? (y/N):', end = ' ')
+        print('WARNING: This script will delete all of your saved posts! Proceed? (y/N):', end=' ')
         proceed = input()
 
     if proceed in ('n', 'N'):
         print('----- EXITING SCRIPT -----')
         return 0
-    
     print('-----')
-
-    savedLen = len(list(me.saved(limit = None)))
-    if savedLen == 0:
-        print('No saved posts to unsave!')
-        print('----- EXITING SCRIPT -----')
-        return 0
 
     writeToFile = '-_-'
     while writeToFile not in ('y', 'Y', 'n', 'N'):
         if writeToFile != '-_-':
             print('----- INVALID INPUT -----')
-        print('Write posts to a file before unsaving from reddit? (y/N):', end = ' ')
+        print('Write posts to a file before unsaving from reddit? (y/N):', end=' ')
         writeToFile = input()
     print('-----')
+
+    print('Retrieving saved posts...\n' +
+          '-----')
+    savedLen = len(list(me.saved(limit=None)))
+    if savedLen == 0:
+        print('No saved posts to unsave!')
+        print('----- EXITING SCRIPT -----')
+        return 0
 
     wtf = False # write to file (alternatively, what the fuck)
     if writeToFile in ('y', 'Y'):
         wtf = True
-        outFile = open('redditSaved_{}_{}.txt'
-                    .format(str(me), datetime.today().strftime('%Y%m%d')),
-                    'a')
+        fileLoc = os.path.join(os.path.dirname(__file__),
+                               'unsave_out/redditSaved_{}_{}.txt'.format(
+                                   str(me), datetime.today().strftime('%Y%m%d')))
+        os.makedirs(os.path.dirname(fileLoc), exist_ok=True)
+        outFile = open(fileLoc, 'a')
 
     count = 0
     redditURL = 'https://reddit.com'
     # Keep running until no saved posts remain
-    # (reddit returns 1000 posts at a time)
+    # (reddit returns 100 saved posts at a time)
     while savedLen > 0:
-        for item in me.saved(limit = None):
+        for item in me.saved(limit=None):
             count += 1
             permalink = str(item.permalink)
 
             if wtf:
                 outFile.write(redditURL + permalink + '\n')
             print('{:<4}:'.format(count), permalink)
-            
+
             if isinstance(item, Submission):
-                reddit.submission(id = Submission.id_from_url(
-                                  redditURL + permalink)).unsave()
+                reddit.submission(str(item)).unsave()
             elif isinstance(item, Comment):
-                reddit.comment(id = Comment.id_from_url(
-                               redditURL + permalink)).unsave()
+                reddit.comment(str(item)).unsave()
             else:
-                break
-        savedLen = len(list(me.saved(limit = None)))
+                continue
 
-    print('-----')
+        print('-----\n' +
+              'Retrieving next batch...\n' +
+              '-----')
+        savedLen = len(list(me.saved(limit=None)))
 
-    if wtf == True:
+    print('No saved posts remain\n' +
+          '-----')
+
+    if wtf:
         print(count, 'link{} written to:'.format('' if count == 1 else 's'),
-              str(Path.cwd()) + '/' + outFile.name)
+              str(fileLoc))
         outFile.close()
 
     print('----- DONE -----')
